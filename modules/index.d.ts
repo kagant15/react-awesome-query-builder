@@ -77,6 +77,7 @@ export interface Utils {
   queryString(tree: ImmutableTree, config: Config, isForDisplay?: Boolean): String;
   sqlFormat(tree: ImmutableTree, config: Config): String;
   mongodbFormat(tree: ImmutableTree, config: Config): Object;
+  elasticSearchFormat(tree: ImmutableTree, config: Config): Object;
   // load, save
   getTree(tree: ImmutableTree): JsonTree;
   loadTree(jsonTree: JsonTree): ImmutableTree;

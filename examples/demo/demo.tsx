@@ -10,7 +10,7 @@ import loadedInitValue from './init_value';
 import loadedInitLogic from './init_logic';
 
 const stringify = JSON.stringify;
-const {queryBuilderFormat, jsonLogicFormat, queryString, mongodbFormat, sqlFormat, getTree, checkTree, loadTree, uuid, loadFromJsonLogic} = Utils;
+const {queryBuilderFormat, jsonLogicFormat, queryString, mongodbFormat, elasticSearchFormat, sqlFormat, getTree, checkTree, loadTree, uuid, loadFromJsonLogic} = Utils;
 const preStyle = { backgroundColor: 'darkgrey', margin: '10px', padding: '10px' };
 const preErrorStyle = { backgroundColor: 'lightpink', margin: '10px', padding: '10px' };
 
@@ -55,7 +55,13 @@ export default class DemoQueryBuilder extends Component<{}, DemoQueryBuilderStat
       skin: initialSkin
     };
 
-    render = () => (
+
+
+    render = () => {
+
+        console.log('render', this.state.tree)
+
+        return (
       <div>
         <Query
             {...this.state.config}
@@ -75,7 +81,7 @@ export default class DemoQueryBuilder extends Component<{}, DemoQueryBuilderStat
           {this.renderResult(this.state)}
         </div>
       </div>
-    )
+    )}
 
     onConfigChanged = ({detail: {config, _initTree, _initValue}}: CustomEvent) => {
       this.setState({
@@ -127,6 +133,8 @@ export default class DemoQueryBuilder extends Component<{}, DemoQueryBuilderStat
     }, 100)
 
     renderResult = ({tree: immutableTree, config} : {tree: ImmutableTree, config: Config}) => {
+        const thing = elasticSearchFormat(immutableTree, config);
+
       const {logic, data, errors} = jsonLogicFormat(immutableTree, config);
       return (
       <div>
@@ -151,6 +159,15 @@ export default class DemoQueryBuilder extends Component<{}, DemoQueryBuilderStat
               {stringify(sqlFormat(immutableTree, config), undefined, 2)}
             </pre>
         </div>
+          <hr/>
+          <div>
+              Elastic Search format:
+              <pre style={preStyle}>
+                {
+                    stringify(thing, undefined, 2)
+                }
+            </pre>
+          </div>
         <hr/>
         <div>
           mongodbFormat: 

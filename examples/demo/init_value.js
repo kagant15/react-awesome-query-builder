@@ -27,6 +27,75 @@ export default
         ]
       }
     },
+    "a98ab9b9-cdef-4012-b456-71607f326ge0": {
+      "type": "rule",
+      "properties": {
+        "field": "num",
+        "operator": "equal",
+        "value": [
+          3
+        ],
+        "valueSrc": [
+          "value"
+        ],
+        "valueType": [
+          "number"
+        ]
+      }
+    },
+    "a98ab9b9-cdef-4012-b456-71607f326hf1": {
+      "type": "rule",
+      "properties": {
+        "field": "date",
+        "operator": "equal",
+        "value": [
+          "2020-05-20"
+        ],
+        "valueSrc": [
+          "value"
+        ],
+        "valueType": [
+          "date"
+        ]
+      }
+    },
+    "aabbab8a-cdef-4012-b456-716e85c65a1b": {
+      "type": "rule",
+      "properties": {
+        "field": "time",
+        "operator": "between",
+        "value": [
+          "14:48:00",
+          "16:00:00"
+        ],
+        "valueSrc": [
+          "value",
+          "value"
+        ],
+        "valueType": [
+          "time",
+          "time"
+        ]
+      }
+    },
+    "aaab8999-cdef-4012-b456-71702cd50111": {
+      "type": "rule",
+      "properties": {
+        "field": "multiselecttree",
+        "operator": "multiselect_equals",
+        "value": [
+          [
+            "8"
+          ]
+        ],
+        "valueSrc": [
+          "value"
+        ],
+        "valueType": [
+          "treemultiselect"
+        ]
+      }
+    },
     "98a8a9ba-0123-4456-b89a-b16e721c8cd0": {
       "type": "rule",
       "properties": {

@@ -1,4 +1,12 @@
 # Changelog
+- 2.0.11
+  - Added `starts_with`, `ends_with` operators for text type
+- 2.0.10
+  - Fixed bug with missing `funcs` in config
+- 2.0.9
+  - Fixed issues #215, #214, #208
+  - Fixed `validateValue`
+  - Simpler sandbox demo
 - 2.0.8
   - Fixed issue #207
 - 2.0.7

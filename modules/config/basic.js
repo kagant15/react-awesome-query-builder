@@ -115,6 +115,8 @@ const operators = {
       },
       mongoFormatOp: mongoFormatOp1.bind(null, '$eq', v => v, false),
       jsonLogic: '==',
+      elasticSearchOccurrence: 'must',
+      elasticSearchQueryType: 'term',
   },
   not_equal: {
       label: '!=',
@@ -129,6 +131,8 @@ const operators = {
       },
       mongoFormatOp: mongoFormatOp1.bind(null, '$ne', v => v, false),
       jsonLogic: '!=',
+      elasticSearchOccurrence: 'must_not',
+      elasticSearchQueryType: 'term',
   },
   less: {
       label: '<',
@@ -137,6 +141,8 @@ const operators = {
       reversedOp: 'greater_or_equal',
       mongoFormatOp: mongoFormatOp1.bind(null, '$lt', v => v, false),
       jsonLogic: '<',
+      elasticSearchOccurrence: 'must',
+      elasticSearchQueryType: 'range',
   },
   less_or_equal: {
       label: '<=',
@@ -145,6 +151,8 @@ const operators = {
       reversedOp: 'greater',
       mongoFormatOp: mongoFormatOp1.bind(null, '$lte', v => v, false),
       jsonLogic: '<=',
+      elasticSearchOccurrence: 'must',
+      elasticSearchQueryType: 'range',
   },
   greater: {
       label: '>',
@@ -153,6 +161,8 @@ const operators = {
       reversedOp: 'less_or_equal',
       mongoFormatOp: mongoFormatOp1.bind(null, '$gt', v => v, false),
       jsonLogic: '>',
+      elasticSearchOccurrence: 'must',
+      elasticSearchQueryType: 'range'
   },
   greater_or_equal: {
       label: '>=',
@@ -161,6 +171,8 @@ const operators = {
       reversedOp: 'less',
       mongoFormatOp: mongoFormatOp1.bind(null, '$gte', v => v, false),
       jsonLogic: '>=',
+      elasticSearchOccurrence: 'must',
+      elasticSearchQueryType: 'range'
   },
   like: {
       label: 'Like',
@@ -177,6 +189,8 @@ const operators = {
       jsonLogic: "in",
       _jsonLogicIsRevArgs: true,
       valueSources: ['value'],
+      elasticSearchOccurrence: 'must',
+      elasticSearchQueryType: 'regexp'
   },
   not_like: {
       label: 'Not like',
@@ -190,6 +204,8 @@ const operators = {
       },
       mongoFormatOp: mongoFormatOp1.bind(null, '$regex', v => (typeof v == 'string' ? escapeRegExp(v) : undefined), true),
       valueSources: ['value'],
+      elasticSearchOccurrence: 'must_not',
+      elasticSearchQueryType: 'regexp'
   },
   starts_with: {
     label: 'Starts with',
@@ -241,6 +257,10 @@ const operators = {
       ],
       reversedOp: 'not_between',
       jsonLogic: "<=",
+      elasticSearchOccurrence: 'must',
+      elasticSearchQueryType: (type)=>{
+        return type==='time' ? 'filter' : 'range'
+      },
   },
   not_between: {
       label: 'Not between',
@@ -257,49 +277,8 @@ const operators = {
           'and'
       ],
       reversedOp: 'between',
-  },
-  range_between: {
-      label: 'Between',
-      labelForFormat: 'BETWEEN',
-      sqlOp: 'BETWEEN',
-      cardinality: 2,
-      isSpecialRange: true, // to show 1 range widget instead of 2
-      formatOp: (field, op, values, valueSrcs, valueTypes, opDef, operatorOptions, isForDisplay) => {
-          let valFrom = values.first();
-          let valTo = values.get(1);
-          if (isForDisplay)
-              return `${field} >= ${valFrom} AND ${field} <= ${valTo}`;
-          else
-              return `${field} >= ${valFrom} && ${field} <= ${valTo}`;
-      },
-      mongoFormatOp: mongoFormatOp2.bind(null, ['$gte', '$lte'], false),
-      valueLabels: [
-          'Value from',
-          'Value to'
-      ],
-      textSeparators: [
-          null,
-          'and'
-      ],
-      reversedOp: 'range_not_between',
-      jsonLogic: "<=",
-  },
-  range_not_between: {
-      label: 'Not between',
-      labelForFormat: 'NOT BETWEEN',
-      sqlOp: 'NOT BETWEEN',
-      cardinality: 2,
-      isSpecialRange: true, // to show 1 range widget instead of 2
-      mongoFormatOp: mongoFormatOp2.bind(null, ['$gte', '$lte'], true),
-      valueLabels: [
-          'Value from',
-          'Value to'
-      ],
-      textSeparators: [
-          null,
-          'and'
-      ],
-      reversedOp: 'range_between',
+      elasticSearchOccurrence: 'must_not',
+      elasticSearchQueryType: 'range',
   },
   is_empty: {
       label: 'Is empty',
@@ -312,6 +291,8 @@ const operators = {
       },
       mongoFormatOp: mongoFormatOp1.bind(null, '$exists', v => false, false),
       jsonLogic: "!",
+      elasticSearchOccurrence: 'must_not',
+      elasticSearchQueryType: 'exists',
   },
   is_not_empty: {
       label: 'Is not empty',
@@ -324,6 +305,8 @@ const operators = {
       },
       mongoFormatOp: mongoFormatOp1.bind(null, '$exists', v => true, false),
       jsonLogic: "!!",
+      elasticSearchOccurrence: 'must',
+      elasticSearchQueryType: 'exists',
   },
   select_equals: {
       label: '==',
@@ -335,6 +318,8 @@ const operators = {
       mongoFormatOp: mongoFormatOp1.bind(null, '$eq', v => v, false),
       reversedOp: 'select_not_equals',
       jsonLogic: "==",
+      elasticSearchOccurrence: 'must',
+      elasticSearchQueryType: 'term',
   },
   select_not_equals: {
       label: '!=',
@@ -346,6 +331,8 @@ const operators = {
       mongoFormatOp: mongoFormatOp1.bind(null, '$ne', v => v, false),
       reversedOp: 'select_equals',
       jsonLogic: "!=",
+      elasticSearchOccurrence: 'must_not',
+      elasticSearchQueryType: 'term',
   },
   select_any_in: {
       label: 'Any in',
@@ -363,6 +350,8 @@ const operators = {
       mongoFormatOp: mongoFormatOp1.bind(null, '$in', v => v, false),
       reversedOp: 'select_not_any_in',
       jsonLogic: "in",
+      elasticSearchOccurrence: 'must',
+      elasticSearchQueryType:'term',
   },
   select_not_any_in: {
       label: 'Not in',
@@ -379,6 +368,8 @@ const operators = {
       },
       mongoFormatOp: mongoFormatOp1.bind(null, '$nin', v => v, false),
       reversedOp: 'select_any_in',
+      elasticSearchOccurrence: 'must',
+      elasticSearchQueryType:'term',
   },
   multiselect_equals: {
       label: 'Equals',
@@ -404,6 +395,8 @@ const operators = {
         // it's not "equals", but "includes" operator - just for example
         "all": [ field, {"in": [{"var": ""}, vals]} ]
       }),
+      elasticSearchOccurrence: 'must',
+      elasticSearchQueryType:'term',
   },
   multiselect_not_equals: {
       label: 'Not equals',
@@ -424,6 +417,8 @@ const operators = {
       },
       mongoFormatOp: mongoFormatOp1.bind(null, '$ne', v => v, false),
       reversedOp: 'multiselect_equals',
+      elasticSearchOccurrence: 'must_not',
+      elasticSearchQueryType:'term',
   },
   proximity: {
       label: 'Proximity search',
@@ -462,7 +457,9 @@ const operators = {
           defaults: {
               proximity: 2
           },
-      }
+      },
+      elasticSearchOccurrence: 'must',
+      elasticSearchQueryType:'term',
   },
 };
 
@@ -598,6 +595,19 @@ const widgets = {
         const dateVal = moment(val, wgtDef.valueFormat);
         return dateVal.get('hour') * 60 * 60 + dateVal.get('minute') * 60 + dateVal.get('second');
       },
+      elasticSearchFormatValue: (queryType, value, operator, fieldName)=>{
+        return {
+          script: {
+            script: {
+              source: `doc[${fieldName}][0].getHour() >== params.min && doc[${fieldName}][0].getHour() <== params.max`,
+              params:{
+                min: value[0],
+                max: value[1],
+              }
+            }
+          }
+        }
+      }
   },
   datetime: {
       type: "datetime",

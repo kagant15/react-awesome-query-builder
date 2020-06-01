@@ -1,4 +1,4 @@
-import {OrderedMap} from 'immutable'
+import {getWidgetForFieldOp} from '../utils/configUtils';
 
 /**
  * Converts a string representation of top_left and bottom_right cords to
@@ -29,11 +29,21 @@ function buildEsGeoPoint(geoPointString) {
  * @param {string} operator - query builder operator type, see constants.js and query builder docs
  * @returns {{lt: string}|{lte: string}|{gte: string}|{gte: string, lte: string}|undefined} - ES range query parameter
  *
- * TODO: Need to account for Time Between two fields
  * @private
  */
-function buildEsRange(dateTime, operator) {
+function buildEsRangeParameters(value, operator) {
+  // -- if value is greater than 1 then we assume this is a between operator : BUG this is wrong, a selectable list can have multiple values
+  if(value.length>1){
+    return {
+      gte: `${value[0]}`,
+      lte: `${value[1]}`
+    }
+  }
+  // -- if value is only one we assume this is a date time query for a specific day
+  const dateTime = value[0];
+
   switch (operator) {
+    case 'on_date':
     case 'equal':
     case 'select_equals':
     case 'not_equal':
@@ -86,67 +96,12 @@ function buildEsWildcardParameters(value) {
 function determineOccurrence(combinator) {
   switch (combinator) {
     case 'AND':
-    case 'like':
-    case 'equal':
-    case 'select_equals':
-    case 'greater':
-    case 'less':
-    case 'greater_or_equal':
-    case 'less_or_equal':
-    case 'contains':
       return 'must'; // -- AND
     case 'OR':
       return 'should'; // -- OR
     case 'NOT':
-    case 'not_equal':
-    case 'not_like':
-    case 'not_contains':
       return 'must_not'; // -- NOT AND
     default:
-      return undefined;
-  }
-}
-
-/**
- * This is were we define the rules for which fields get mapped to which type of ES query.
- * Sometimes the query type depends on the field and sometimes on the match type
- *
- * TODO : Add handling fo Greaxnumber
- * @param {string} type - The data type
- * @param {string} operator - query builder operator type, see constants.js and query builder docs
- * @returns {string} - ES query type, see constants.js
- * @private
- */
-function determineQueryType(type, operator) {
-  switch (type) {
-    case 'geo_bounding_box':
-      return 'geo_bounding_box';
-    case 'date':
-    case 'time':
-      return 'range';
-    case 'boolean':
-      return 'term';
-    case 'number':
-      return 'match';
-    case 'text':
-      switch (operator) {
-        case 'equal':
-        case 'select_equals':
-        case 'not_equal':
-          return 'term';
-        case 'contains':
-        case 'not_contains':
-          return 'wildcard';
-        case 'like':
-        case 'not_like':
-          return 'match';
-        default:
-          return undefined;
-      }
-    default:
-      console.error(
-      `Can't determine query : unaccounted for data type ${type}`
-      );
       return undefined;
   }
 }
@@ -178,27 +133,44 @@ function determineQueryField(fieldDataType, fullFieldName, queryType) {
   }
 }
 
-/**
- * Determines what we are actually asking for in our ES query
- *
- * @param {string} queryType - ES query type, see constants.js
- * @param {string} value - The content from the query builder
- * @param {string} operator - query builder operator type, see constants.js and query builder docs
- * @returns {{gte: string, lte: string} | {lte: string} | {gte: string} | {lt: string} |
- *         {top_left: {lon: *, lat: *}, bottom_right: {lon: *, lat: *}}|*} - ES formatted criteria based on type
- * @private
- */
-function determineCriteria(queryType, value, operator) {
+function buildRegexpParameters(value){
+  return{
+    value,
+  }
+}
+
+function buildParameters(queryType, value, operator, fieldName, config){
   switch (queryType) {
+    case 'filter':
+      return {
+        script : config.operators[operator].elasticSearchScript(fieldName, value)
+      }
+    case 'exists':
+      return {
+        field: fieldName
+      }
     case 'match':
     case 'term':
-      return value;
+      console.log("value from term ", value)
+      return {
+        [fieldName] :  value[0]
+      }
     case 'geo_bounding_box':
-      return buildEsGeoPoint(value);
+      return {
+        [fieldName] : buildEsGeoPoint(value[0])
+      }
     case 'range':
-      return buildEsRange(value, operator);
+      return {
+        [fieldName] : buildEsRangeParameters(value, operator)
+      }
     case 'wildcard':
-      return buildEsWildcardParameters(value);
+      return {
+        [fieldName] : buildEsWildcardParameters(value[0])
+      }
+    case 'regexp':
+      return {
+        [fieldName] : buildRegexpParameters(value[0])
+      }
     default:
       return undefined;
   }
@@ -214,27 +186,37 @@ function determineCriteria(queryType, value, operator) {
  * @returns {object} - The ES rule
  * @private
  */
-function buildEsRule(fieldName, fieldDataType, value, operator, config) {
-  if(fieldName === 'time'){
-    console.log("yup")
+function buildEsRule(fieldName, value, operator, config, valueSrc) {
+  // handle if value 0 has multiple values like a select in a array
+  const widget = getWidgetForFieldOp(config, fieldName, operator, valueSrc);
+
+  const occurrence = config.operators[operator].elasticSearchOccurrence;
+
+  /** In most cases the queryType will be static however in some casese (like between) the query type will change
+   * based on the data type. i.e. a between time will be different than between number, date, letters etc... */
+  let queryType;
+  if(typeof config.operators[operator].elasticSearchQueryType === 'function'){
+    queryType = config.operators[operator].elasticSearchQueryType(widget);
+  } else {
+    queryType = config.operators[operator].elasticSearchQueryType;
   }
 
-  const occurrence = determineOccurrence(operator);
-  const queryType = determineQueryType(fieldDataType, operator);
-  const queryField = determineQueryField(fieldDataType, fieldName, queryType);
-  const criteria = determineCriteria(queryType, value, operator);
+  /** If a widget has a rule on how to format that data then use that otherwise use default way of determineing search parameters
+   * */
+  let parameters
+  if(typeof config.widgets[widget].elasticSearchFormatValue === 'function'){
+    parameters = config.widgets[widget].elasticSearchFormatValue(queryType, value, operator, fieldName, config)
+  } else {
+    parameters = buildParameters(queryType, value, operator, fieldName, config);
+  }
 
-  console.log("occurrence", occurrence);
-  console.log("queryType", queryType);
-  console.log("queryField", queryField);
-  console.log("criteria", criteria);
 
   if(occurrence === 'must'){
     return {
       // bool: {
       //   [occurrence]: {
           [queryType]: {
-            [queryField]: criteria,
+            ...parameters
           },
         // },
       // },
@@ -245,11 +227,17 @@ function buildEsRule(fieldName, fieldDataType, value, operator, config) {
     bool: {
       [occurrence]: {
         [queryType]: {
-          [queryField]: criteria,
+          ...buildParameters(queryType, value, operator, fieldName, config)
         },
       },
     },
   };
+}
+
+function flatten(arr) {
+  return arr.reduce(function (flat, toFlatten) {
+    return flat.concat(Array.isArray(toFlatten) ? flatten(toFlatten) : toFlatten);
+  }, []);
 }
 
 /**
@@ -265,73 +253,43 @@ function buildEsGroup(children, conjunction, recursiveFxn, config) {
   const realChildren = children.valueSeq().toArray();
   const occurrence = determineOccurrence(conjunction);
 
-  const thing = children.toJS();
-
   const result = realChildren.map(
     (c) => recursiveFxn(c, config)
   );
 
   return {
     bool: {
-      [occurrence]: result,
+      [occurrence]: flatten(result)
     },
   };
 }
-
-/**
- * Converts the jsonTree representation of the
- * [react-awesome-query-builder]{@link https://github.com/ukrbublik/react-awesome-query-builder} into Elastic Search DSL
- *
- * @param {object} jsonTree - The tree you get from react-awesome-query-builder [Utils.getTree(tree)]{@link https://github.com/ukrbublik/react-awesome-query-builder#gettree-immutablevalue---object}
- * @returns {object} - The DSL formatted query
- * @public
- */
-function awesomeQbToDSL(jsonTree) {
-  const { type } = jsonTree;
-  if (type === 'rule') {
-    const { operator, field, value, valueType } = jsonTree.properties;
-    return buildEsRule(field, valueType[0], value[0], operator);
-  }
-  if (type === 'group') {
-    const {
-      children1,
-      properties: { conjunction },
-    } = jsonTree;
-
-    return buildEsGroup(children1, conjunction, awesomeQbToDSL);
-  }
-
-  return undefined;
-}
-
-
 
 export function elasticSearchFormat(tree, config){
   // -- format the es dsl here
   if(!tree) return undefined;
   const type = tree.get('type');
+  const tk_dbug = tree.toJS();
   const properties = tree.get('properties')
   const tk_properties = properties.toJS();
   if(type === 'rule' && properties.get('field')){ // -- field is null when a new blank rule is added
 
     const operator = properties.get('operator')
     const field = properties.get('field')
-    const value = properties.get('value').get(0)
+    const value = properties.get('value').toJS();
     const valueType = properties.get('valueType').get(0);
+    const valueSrc = properties.get('valueSrc').get(0)
 
-    const tk_list = properties.get('value').toJS();
 
-    // -- TODO: Add handling for when a value has multiple values
-    if(OrderedMap.isOrderedMap(value)){
-      return undefined;
+    if(valueSrc === 'func'){ // -- elastic search doesn't support functions (that is post processing)
+      return;
     }
 
-    if(valueType === 'select'){
-      console.log("select")
+    if(value && Array.isArray(value[0])){
+      // -- TODO : Handle case where the value has multiple values such as in the case of a list
+      return value[0].map((val)=>{ return buildEsRule(field, [val], operator, config, valueSrc) })
+    } else{
+      return buildEsRule(field, value, operator, config, valueSrc);
     }
-
-    return buildEsRule(field, valueType, value, operator, config);
-    // return buildEsRule()
   }
   if(type === 'group' || type === 'rule_group'){
     const thing = tree.toJS();
@@ -340,5 +298,4 @@ export function elasticSearchFormat(tree, config){
 
     return buildEsGroup(children, conjunction, elasticSearchFormat, config)
   }
-  console.log("type", type);
 }

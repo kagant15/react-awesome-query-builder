@@ -6,17 +6,12 @@ export default
     "a98ab9b9-cdef-4012-b456-71607f326fd9": {
       "type": "rule",
       "properties": {
-        "field": "user.login",
+        "field": "user.firstName",
         "operator": "equal",
         "value": [
           {
             "func": "LOWER",
-            "args": {
-              "str": {
-                "valueSrc": "field",
-                "value": "user.firstName"
-              }
-            }
+            "args": {}
           }
         ],
         "valueSrc": [
@@ -78,6 +73,73 @@ export default
         ]
       }
     },
+    "aabbab8a-cdef-4012-b456-716e85c65efg": {
+      "type": "rule",
+      "properties": {
+        "field": "datetime",
+        "operator": "equal",
+        "value": [
+          "2020-05-27 11:41:55"
+        ],
+        "valueSrc": [
+          "value"
+        ],
+        "valueType": [
+          "datetime"
+        ]
+      }
+    },
+    "00c8a8a8-89ab-4cde-b012-31702cd5078b": {
+      "type": "rule",
+      "properties": {
+        "field": "results.product",
+        "operator": "select_equals",
+        "value": [
+          "abc"
+        ],
+        "valueSrc": [
+          "value"
+        ],
+        "valueType": [
+          "select"
+        ]
+      }
+    },
+    "a98ab9b9-cdef-5122-b456-71607f326hf1": {
+      "type": "rule",
+      "properties": {
+        "field": "multicolor",
+        "operator": "multiselect_equals",
+        "value": [
+          [
+            "green",
+            "yellow"
+          ]
+        ],
+        "valueSrc": [
+          "value"
+        ],
+        "valueType": [
+          "multiselect"
+        ]
+      }
+    },
+    "aabbab8a-cdef-4012-c566-716e85c65e9c": {
+      "type": "rule",
+      "properties": {
+        "field": "selecttree",
+        "operator": "select_equals",
+        "value": [
+          "3"
+        ],
+        "valueSrc": [
+          "value"
+        ],
+        "valueType": [
+          "treeselect"
+        ]
+      }
+    },
     "aaab8999-cdef-4012-b456-71702cd50111": {
       "type": "rule",
       "properties": {
@@ -109,22 +171,6 @@ export default
         ],
         "valueType": [
           "boolean"
-        ]
-      }
-    },
-    "aabbab8a-cdef-4012-b456-716e85c65e9c": {
-      "type": "rule",
-      "properties": {
-        "field": "slider",
-        "operator": "equal",
-        "value": [
-          35
-        ],
-        "valueSrc": [
-          "value"
-        ],
-        "valueType": [
-          "number"
         ]
       }
     },

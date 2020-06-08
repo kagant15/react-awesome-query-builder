@@ -9,6 +9,10 @@ import {getWidgetForFieldOp} from '../utils/configUtils';
  * @private
  */
 function buildEsGeoPoint(geoPointString) {
+  if(geoPointString == null){
+    return null;
+  }
+
   const coordsNumberArray = geoPointString.split(',').map(Number);
   return {
     top_left: {
@@ -42,8 +46,10 @@ function buildEsRangeParameters(value, operator) {
   // -- if value is only one we assume this is a date time query for a specific day
   const dateTime = value[0];
 
+  // -- TODO: Rethink about this part, what if someone adds a new type of opperator
   switch (operator) {
     case 'on_date':
+    case 'not_on_date':
     case 'equal':
     case 'select_equals':
     case 'not_equal':
@@ -139,6 +145,10 @@ function buildRegexpParameters(value){
   }
 }
 
+function determineField(fieldName, config){
+  return config.fields[fieldName].ElasticSearchTextField || fieldName;
+}
+
 function buildParameters(queryType, value, operator, fieldName, config){
   switch (queryType) {
     case 'filter':
@@ -150,8 +160,11 @@ function buildParameters(queryType, value, operator, fieldName, config){
         field: fieldName
       }
     case 'match':
+      const textField = determineField(fieldName, config)
+      return {
+        [textField] :  value[0]
+      }
     case 'term':
-      console.log("value from term ", value)
       return {
         [fieldName] :  value[0]
       }
@@ -227,7 +240,7 @@ function buildEsRule(fieldName, value, operator, config, valueSrc) {
     bool: {
       [occurrence]: {
         [queryType]: {
-          ...buildParameters(queryType, value, operator, fieldName, config)
+          ...parameters
         },
       },
     },

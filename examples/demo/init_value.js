@@ -1,4 +1,4 @@
-export default 
+export default
 {
   "type": "group",
   "id": "9a99988a-0123-4456-b89a-b1607f326fd8",
@@ -6,12 +6,17 @@ export default
     "a98ab9b9-cdef-4012-b456-71607f326fd9": {
       "type": "rule",
       "properties": {
-        "field": "user.firstName",
+        "field": "user.login",
         "operator": "equal",
         "value": [
           {
             "func": "LOWER",
-            "args": {}
+            "args": {
+              "str": {
+                "valueSrc": "field",
+                "value": "user.firstName"
+              }
+            }
           }
         ],
         "valueSrc": [
@@ -19,142 +24,6 @@ export default
         ],
         "valueType": [
           "text"
-        ]
-      }
-    },
-    "a98ab9b9-cdef-4012-b456-71607f326ge0": {
-      "type": "rule",
-      "properties": {
-        "field": "num",
-        "operator": "equal",
-        "value": [
-          3
-        ],
-        "valueSrc": [
-          "value"
-        ],
-        "valueType": [
-          "number"
-        ]
-      }
-    },
-    "a98ab9b9-cdef-4012-b456-71607f326hf1": {
-      "type": "rule",
-      "properties": {
-        "field": "date",
-        "operator": "equal",
-        "value": [
-          "2020-05-20"
-        ],
-        "valueSrc": [
-          "value"
-        ],
-        "valueType": [
-          "date"
-        ]
-      }
-    },
-    "aabbab8a-cdef-4012-b456-716e85c65a1b": {
-      "type": "rule",
-      "properties": {
-        "field": "time",
-        "operator": "between",
-        "value": [
-          "14:48:00",
-          "16:00:00"
-        ],
-        "valueSrc": [
-          "value",
-          "value"
-        ],
-        "valueType": [
-          "time",
-          "time"
-        ]
-      }
-    },
-    "aabbab8a-cdef-4012-b456-716e85c65efg": {
-      "type": "rule",
-      "properties": {
-        "field": "datetime",
-        "operator": "equal",
-        "value": [
-          "2020-05-27 11:41:55"
-        ],
-        "valueSrc": [
-          "value"
-        ],
-        "valueType": [
-          "datetime"
-        ]
-      }
-    },
-    "00c8a8a8-89ab-4cde-b012-31702cd5078b": {
-      "type": "rule",
-      "properties": {
-        "field": "results.product",
-        "operator": "select_equals",
-        "value": [
-          "abc"
-        ],
-        "valueSrc": [
-          "value"
-        ],
-        "valueType": [
-          "select"
-        ]
-      }
-    },
-    "a98ab9b9-cdef-5122-b456-71607f326hf1": {
-      "type": "rule",
-      "properties": {
-        "field": "multicolor",
-        "operator": "multiselect_equals",
-        "value": [
-          [
-            "green",
-            "yellow"
-          ]
-        ],
-        "valueSrc": [
-          "value"
-        ],
-        "valueType": [
-          "multiselect"
-        ]
-      }
-    },
-    "aabbab8a-cdef-4012-c566-716e85c65e9c": {
-      "type": "rule",
-      "properties": {
-        "field": "selecttree",
-        "operator": "select_equals",
-        "value": [
-          "3"
-        ],
-        "valueSrc": [
-          "value"
-        ],
-        "valueType": [
-          "treeselect"
-        ]
-      }
-    },
-    "aaab8999-cdef-4012-b456-71702cd50111": {
-      "type": "rule",
-      "properties": {
-        "field": "multiselecttree",
-        "operator": "multiselect_equals",
-        "value": [
-          [
-            "8"
-          ]
-        ],
-        "valueSrc": [
-          "value"
-        ],
-        "valueType": [
-          "treemultiselect"
         ]
       }
     },
@@ -171,6 +40,22 @@ export default
         ],
         "valueType": [
           "boolean"
+        ]
+      }
+    },
+    "aabbab8a-cdef-4012-b456-716e85c65e9c": {
+      "type": "rule",
+      "properties": {
+        "field": "slider",
+        "operator": "equal",
+        "value": [
+          35
+        ],
+        "valueSrc": [
+          "value"
+        ],
+        "valueType": [
+          "number"
         ]
       }
     },

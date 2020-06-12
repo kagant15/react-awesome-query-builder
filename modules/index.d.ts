@@ -570,6 +570,7 @@ export interface BehaviourSettings {
   immutableFieldsMode?: Boolean,
   immutableOpsMode?: Boolean,
   immutableValuesMode?: Boolean,
+  maxNumberOfRules?: Number
   showErrorMessage?: Boolean
   canShortMongoQuery?: Boolean,
   convertableWidgets?: TypedMap<Array<String>>,

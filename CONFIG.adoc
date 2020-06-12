@@ -179,7 +179,7 @@ const myConfig = {
   Available settings for Number and Slider widgets: `min`, `max`, `step`. Slider also supports `marks` (example: `{ 0: "0%", 100: "100%" }`). +
   Available settings for date/time widgets: `timeFormat`, `dateFormat`, `valueFormat`, `use12Hours`.
 |fieldSettings.validateValue | | |Function to validate entered value. Return true/false or error string / null. +
-  `(mixed val, Object fieldSettings) => boolean | string | null`
+  `(mixed val, Object fieldSettings) => boolean \| string \| null`
 |preferWidgets | | |See usecase at https://github.com/ukrbublik/react-awesome-query-builder/tree/master/examples/demo/config.tsx[`examples/demo`] for `slider` field. +
   Its type is `number`. There are 3 widgets defined for number type: `number`, `slider`, `rangeslider`. +
   So setting `preferWidgets: ['slider', 'rangeslider']` will force rendering slider, and setting `preferWidgets: ['number']` will render number input.
@@ -269,6 +269,7 @@ Behaviour settings:
 |clearValueOnChangeField |false |Clear value on field change? false - if prev & next fields have same type (widget), keep
 |clearValueOnChangeOp |false |Clear value on operator change?
 |canLeaveEmptyGroup |false |Leave empty group after deletion or add 1 clean rule immediately?
+|maxNumberOfRules |100 |Maximum number of rules which can be added to the query builder
 |canCompareFieldWithField | |For `<ValueFieldWidget>` - Function for building right list of fields to compare field with field +
   `(string leftField, Object leftFieldConfig, string rightField, Object rightFieldConfig) => boolean` +
   For type == `select`/`multiselect` you can optionally check `listValues`

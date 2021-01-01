@@ -10,7 +10,7 @@ import loadedInitValue from "./init_value";
 import loadedInitLogic from "./init_logic";
 
 const stringify = JSON.stringify;
-const {queryBuilderFormat, jsonLogicFormat, queryString, mongodbFormat, sqlFormat, getTree, checkTree, loadTree, uuid, loadFromJsonLogic, isValidTree} = Utils;
+const {queryBuilderFormat, elasticSearchFormat, jsonLogicFormat, queryString, mongodbFormat, sqlFormat, getTree, checkTree, loadTree, uuid, loadFromJsonLogic, isValidTree} = Utils;
 const preStyle = { backgroundColor: "darkgrey", margin: "10px", padding: "10px" };
 const preErrorStyle = { backgroundColor: "lightpink", margin: "10px", padding: "10px" };
 
@@ -135,6 +135,13 @@ export default class DemoQueryBuilder extends Component<{}, DemoQueryBuilderStat
         <div>
           {isValid ? null : <pre style={preErrorStyle}>{"Tree has errors"}</pre>}
           <br />
+          <div>
+          elasticSearchFormat:
+            <pre style={preStyle}>
+              {stringify(elasticSearchFormat(immutableTree, config), undefined, 2)}
+            </pre>
+          </div>
+          <hr/>
           <div>
           stringFormat: 
             <pre style={preStyle}>

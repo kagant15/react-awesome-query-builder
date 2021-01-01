@@ -1,4 +1,6 @@
-import {getWidgetForFieldOp} from '../utils/configUtils';
+import {getFieldWidgetConfig, getOperatorConfig, getWidgetForFieldOp} from '../utils/configUtils';
+import {Map} from 'immutable';
+import omit from "lodash/omit";
 
 /**
  * Converts a string representation of top_left and bottom_right cords to
@@ -162,15 +164,15 @@ function buildParameters(queryType, value, operator, fieldName, config){
     case 'match':
       const textField = determineField(fieldName, config)
       return {
-        [textField] :  value[0]
+        [textField] :  value
       }
     case 'term':
       return {
-        [fieldName] :  value[0]
+        [fieldName] :  value
       }
     case 'geo_bounding_box':
       return {
-        [fieldName] : buildEsGeoPoint(value[0])
+        [fieldName] : buildEsGeoPoint(value)
       }
     case 'range':
       return {
@@ -178,11 +180,11 @@ function buildParameters(queryType, value, operator, fieldName, config){
       }
     case 'wildcard':
       return {
-        [fieldName] : buildEsWildcardParameters(value[0])
+        [fieldName] : buildEsWildcardParameters(value)
       }
     case 'regexp':
       return {
-        [fieldName] : buildRegexpParameters(value[0])
+        [fieldName] : buildRegexpParameters(value)
       }
     default:
       return undefined;
@@ -203,21 +205,24 @@ function buildEsRule(fieldName, value, operator, config, valueSrc) {
   // handle if value 0 has multiple values like a select in a array
   const widget = getWidgetForFieldOp(config, fieldName, operator, valueSrc);
 
-  const occurrence = config.operators[operator].elasticSearchOccurrence;
+  const operatorDefinition = getOperatorConfig(config, operator, fieldName) || {};
+  const occurrence = operatorDefinition.elasticSearchOccurrence;
 
   /** In most cases the queryType will be static however in some casese (like between) the query type will change
    * based on the data type. i.e. a between time will be different than between number, date, letters etc... */
   let queryType;
-  if(typeof config.operators[operator].elasticSearchQueryType === 'function'){
-    queryType = config.operators[operator].elasticSearchQueryType(widget);
+  if(typeof operatorDefinition.elasticSearchQueryType === 'function'){
+    queryType = operatorDefinition.elasticSearchQueryType(widget);
   } else {
-    queryType = config.operators[operator].elasticSearchQueryType;
+    queryType = operatorDefinition.elasticSearchQueryType;
   }
 
   /** If a widget has a rule on how to format that data then use that otherwise use default way of determineing search parameters
    * */
   let parameters
-  if(typeof config.widgets[widget].elasticSearchFormatValue === 'function'){
+  const fieldWidgetDefinition = omit(getFieldWidgetConfig(config, fieldName, operator, widget, valueSrc), ["factory"]);
+
+  if(typeof fieldWidgetDefinition.elasticSearchFormatValue === 'function'){
     parameters = config.widgets[widget].elasticSearchFormatValue(queryType, value, operator, fieldName, config)
   } else {
     parameters = buildParameters(queryType, value, operator, fieldName, config);
@@ -262,12 +267,11 @@ function flatten(arr) {
  * @private
  * @returns {object} - The ES group
  */
-function buildEsGroup(children, conjunction, recursiveFxn, config) {
-  const realChildren = children.valueSeq().toArray();
+function buildEsGroup(children, conjunction, recursiveFxn, config, meta, not) {
   const occurrence = determineOccurrence(conjunction);
 
-  const result = realChildren.map(
-    (c) => recursiveFxn(c, config)
+  const result = children.map(
+    (c) => recursiveFxn(c, config, meta, not)
   );
 
   return {
@@ -278,37 +282,72 @@ function buildEsGroup(children, conjunction, recursiveFxn, config) {
 }
 
 export function elasticSearchFormat(tree, config){
+  let meta = {
+    errors: []
+  };
+
+  const res = elasticSearchFormatItem(tree, config, meta)
+
+  if (meta.errors.length){
+    console.warn("Errors while exporting to Elasticsearch:", meta.errors)
+  }
+  return res;
+
+}
+
+function elasticSearchFormatItem(tree, config, meta, _not){
   // -- format the es dsl here
   if(!tree) return undefined;
   const type = tree.get('type');
-  const tk_dbug = tree.toJS();
-  const properties = tree.get('properties')
-  const tk_properties = properties.toJS();
-  if(type === 'rule' && properties.get('field')){ // -- field is null when a new blank rule is added
+  const properties = tree.get('properties') || new Map();
+    const debugProperties = properties.toJS();
+  const children = tree.get("children1");
 
-    const operator = properties.get('operator')
+
+  if((type === 'group' || type === 'rule_group') && children && children.size){
+    const not = _not ? !(properties.get("not")) : (properties.get("not"));
+    const conjunction = properties.get('conjunction');
+
+    return buildEsGroup(children, conjunction, elasticSearchFormatItem, config, meta, not)
+  }
+  else if(type === 'rule'){ // -- field is null when a new blank rule is added
+    let operator = properties.get('operator')
     const field = properties.get('field')
-    const value = properties.get('value').toJS();
-    const valueType = properties.get('valueType').get(0);
+    const value = properties.get('value');
+
+    if(field == null || operator == null){
+      return undefined;
+    }
+
+    // -- elastic search doesn't support functions (that is post processing)
     const valueSrc = properties.get('valueSrc').get(0)
-
-
-    if(valueSrc === 'func'){ // -- elastic search doesn't support functions (that is post processing)
-      return;
+    if(valueSrc === 'func'){
+      return undefined;
     }
 
-    if(value && Array.isArray(value[0])){
-      // -- TODO : Handle case where the value has multiple values such as in the case of a list
-      return value[0].map((val)=>{ return buildEsRule(field, [val], operator, config, valueSrc) })
-    } else{
-      return buildEsRule(field, value, operator, config, valueSrc);
-    }
-  }
-  if(type === 'group' || type === 'rule_group'){
-    const thing = tree.toJS();
-    const conjunction = tree.get('properties').get('conjunction');
-    const children = tree.get('children1')
+    let operatorDefinition = getOperatorConfig(config, operator, field) || {};
+    let reversedOp = operatorDefinition.reversedOp;
+    let revOperatorDefinition = getOperatorConfig(config, reversedOp, field) || {};
 
-    return buildEsGroup(children, conjunction, elasticSearchFormat, config)
+    if (_not){
+      [operator, reversedOp] = [reversedOp, operator];
+      [operatorDefinition, revOperatorDefinition] = [revOperatorDefinition, operatorDefinition];
+    }
+
+    const done = value.map((currentValue, ind) => {
+
+      return buildEsRule(field, currentValue, operator, config, valueSrc)
+
+    })
+
+    return done;
+
+    // if(value && Array.isArray(value[0])){
+    //   // -- TODO : Handle case where the value has multiple values such as in the case of a list
+    //   return value[0].map((val)=>{ return buildEsRule(field, [val], operator, config, valueSrc) })
+    // } else{
+    //   return buildEsRule(field, value, operator, config, valueSrc);
+    // }
   }
+  return undefined;
 }
